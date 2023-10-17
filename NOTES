@@ -1,0 +1,8 @@
+FIXES
+1. print_obj smashes the stack with the AST of the code in test/006.scm
+
+TODO
+1. Complete all examples of test.scm
+   quote
+2. Garbage collection
+3. Generate assembly instead of C (or both) or code for a VM
