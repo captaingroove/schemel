@@ -17,8 +17,8 @@
 
 #define panic(...) { fprintf(stderr, __VA_ARGS__); exit(EXIT_FAILURE); }
 
+/// Forward declarations
 void eval(char ***out, struct obj* ast);
-
 /// Tree of environment hash tables implemented as an array
 struct envht { char *key; struct obj *value; };
 struct envt { struct envht *e; int pidx; };
@@ -395,17 +395,11 @@ static void
 emit_quote(char ***out, struct obj *obj)
 {
 	char **outarr = *out;
-	/// FIXME don't open a scope or allocate a lh value for obj
-	// arrput(outarr, "	{\n");
-	arrput(outarr, "		struct obj *o = NULL;\n");
 	char *so = malloc(MAX_STMTLEN);
 	char val_s[MAX_VALLEN] = {0};
 	obj_tostr(val_s, obj);
-	sprintf(so, "		char *sexpr_str = \"%s\";\n", val_s);
+	sprintf(so, "	QUOTE(\"%s\");\n", val_s);
 	arrput(outarr, so);
-	arrput(outarr, "		parse(&o, &sexpr_str);\n");
-	arrput(outarr, "		push(o);\n");
-	// arrput(outarr, "	}\n");
 	*out = outarr;
 }
 
@@ -430,13 +424,8 @@ eval(char ***out, struct obj* ast)
 		if (fo->type == TSYMB) {
 			char *symb = fo->pval;
 			if (strcmp(symb, "quote") == 0) {
-				// /// TODO implement quote
-				// /// push the list without the first object which is symbol "quote"
-				// /// => push CDR(list)
-				// /// quote seems to expect only one argument
 				emit_quote(out, x[1]);
 			} else if (strcmp(symb, "if") == 0) {
-			// if (strcmp(symb, "if") == 0) {
 				eval(out, x[1]);
 				emit_if(out, x[2], x[3]);
 			} else if (strcmp(symb, "define") == 0) {
@@ -835,14 +824,6 @@ append(int nargs)
 }
 
 
-// static void
-// quote(int nargs)
-// {
-	// (void)nargs;
-	// // push(pop());
-// }
-
-
 bool
 init_builtins()
 {
@@ -861,8 +842,18 @@ init_builtins()
     shput(env[0].e, "null?", gen_obj_fn(null_pred, 0));
     shput(env[0].e, "length", gen_obj_fn(length, 0));
     shput(env[0].e, "append", gen_obj_fn(append, 0));
-    // shput(env[0].e, "quote", gen_obj_fn(quote, 0));
     return true;
+}
+
+
+/// VM operations
+
+void
+QUOTE(char *sexp)
+{
+	struct obj *o = NULL;
+	parse(&o, &sexp);
+	push(o);
 }
 
 
@@ -981,6 +972,7 @@ call_obj(struct obj *obj, int nargs)
 }
 
 
+/// FIXME Stack smash with print_obj with the AST of the code in test/006.scm
 int
 obj_tostr(char *str, struct obj *obj)
 {

@@ -22,7 +22,7 @@ test: schemel
 	./schemel test/007.scm && test "$$(./test/007)" = "(1 2)"    && echo 007 OK
 	./schemel test/008.scm && test "$$(./test/008)" = "(3 0 3)"  && echo 008 OK
 	./schemel test/009.scm && test "$$(./test/009)" = "((1 5) (2 6) (3 7) (4 8))"  && echo 009 OK
-	./schemel test/010.scm && test "$$(./test/010)" = "#f"  && echo 010 OK
+	./schemel test/010.scm && test "$$(./test/010)" = "(#t #f)"  && echo 010 OK
 	./schemel test/011.scm && test "$$(./test/011)" = "5"   && echo 011 OK
 	./schemel test/012.scm && test "$$(./test/012)" = "(1 2 (3 4) 5 6 (7 (-1 -2) 8))"   && echo 012 OK
 	./schemel test/013.scm && test "$$(./test/013)" = "5"   && echo 013 OK

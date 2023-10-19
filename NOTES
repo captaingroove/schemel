@@ -1,6 +1,3 @@
-FIXES
-1. print_obj smashes the stack with the AST of the code in test/006.scm
-
 TODO
 1. Complete all examples of test.scm
    quote

@@ -70,5 +70,7 @@ int obj_tostr(char *str, struct obj *obj);
 void print_obj(struct obj *obj);
 void print_stack();
 void print_env();
+/// VM operations
+void QUOTE(char *sexp);
 
 #endif

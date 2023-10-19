@@ -1,1 +1,4 @@
-(display (null? (quote (1 2))))
+(display
+	(list
+		(null? (quote ()))
+		(null? (quote (1 2)))))
