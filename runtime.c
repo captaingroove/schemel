@@ -43,6 +43,28 @@ struct func_def {
 struct func_def *func_defs = NULL;
 static int *parent_env = NULL;
 
+
+/// Functions operating on objects/s-expressions
+void
+sexp_append_obj_inplace(struct obj *list, struct obj *obj)
+{
+	if (list == NULL || list->type != TLIST) panic("Can't append object to nil or non-list\n");
+	struct obj **darr = list->pval;
+	arrput(darr, obj);
+	list->pval = darr;
+}
+
+
+void
+sexp_append_or_set(struct obj **out, struct obj *obj)
+{
+	if (*out == NULL) *out = obj;
+	else if ((*out)->type == TLIST) sexp_append_obj_inplace(*out, obj);
+	/// Otherwise *out is a literal and we don't mutate it
+}
+
+
+/// String operations, lexer, parser
 void
 str_from_strview(char *s, struct strview sv)
 {
@@ -117,7 +139,7 @@ next_tok(char **ss)
 
 
 int
-parse(struct obj *ast, char **sexpr_str)
+parse(struct obj **ast, char **sexpr_str)
 {
 	struct token t;
 	char buf[MAX_VALLEN];
@@ -129,20 +151,20 @@ parse(struct obj *ast, char **sexpr_str)
 		struct obj *o = gen_obj_list();
 		int t_type;
 		do {
-			t_type = parse(o, sexpr_str);
+			t_type = parse(&o, sexpr_str);
 		} while (t_type != TOKPARR);
-		sexp_append_obj_inplace(ast, o);
+		sexp_append_or_set(ast, o);
 	}
 	else if (t_type == TOKPARR) {
 	}
 	else if (t_type == TOKNUM) {
 		struct obj *o = gen_obj_int_strview(t.s);
-		sexp_append_obj_inplace(ast, o);
+		sexp_append_or_set(ast, o);
 	}
 	else if (t_type == TOKSYMB) {
 		str_from_strview(buf, t.s);
 		struct obj *o = gen_obj_symb(buf);
-		sexp_append_obj_inplace(ast, o);
+		sexp_append_or_set(ast, o);
 	}
 	else {
 		panic("unknown token\n");
@@ -369,10 +391,22 @@ emit_lambda_def(char ***out, struct func_def *fd)
 }
 
 
-// static void
-// emit_quote(char ***out, struct obj *obj)
-// {
-// }
+static void
+emit_quote(char ***out, struct obj *obj)
+{
+	char **outarr = *out;
+	// arrput(outarr, "	{\n");
+	arrput(outarr, "		struct obj *o = NULL;\n");
+	char *so = malloc(MAX_STMTLEN);
+	char val_s[MAX_VALLEN] = {0};
+	obj_tostr(val_s, obj);
+	sprintf(so, "		char *sexpr_str = \"%s\";\n", val_s);
+	arrput(outarr, so);
+	arrput(outarr, "		parse(&o, &sexpr_str);\n");
+	arrput(outarr, "		push(o);\n");
+	// arrput(outarr, "	}\n");
+	*out = outarr;
+}
 
 
 void
@@ -394,14 +428,14 @@ eval(char ***out, struct obj* ast)
 		struct obj *fo = x[0];
 		if (fo->type == TSYMB) {
 			char *symb = fo->pval;
-			// if (strcmp(symb, "quote") == 0) {
+			if (strcmp(symb, "quote") == 0) {
 				// /// TODO implement quote
 				// /// push the list without the first object which is symbol "quote"
 				// /// => push CDR(list)
 				// /// quote seems to expect only one argument
-				// emit_quote(out, x);
-			// } else if (strcmp(symb, "if") == 0) {
-			if (strcmp(symb, "if") == 0) {
+				emit_quote(out, x[1]);
+			} else if (strcmp(symb, "if") == 0) {
+			// if (strcmp(symb, "if") == 0) {
 				eval(out, x[1]);
 				emit_if(out, x[2], x[3]);
 			} else if (strcmp(symb, "define") == 0) {
@@ -599,17 +633,6 @@ gen_obj_fn(func fn, int idx)
 	res->envidx = idx;
 	// new_env();
 	return res;
-}
-
-
-/// Functions operating on objects/s-expressions
-void
-sexp_append_obj_inplace(struct obj *list, struct obj *obj)
-{
-	if (list->type != TLIST) panic("Can't append object to non-list\n");
-	struct obj **darr = list->pval;
-	arrput(darr, obj);
-	list->pval = darr;
 }
 
 
@@ -811,12 +834,12 @@ append(int nargs)
 }
 
 
-static void
-quote(int nargs)
-{
-	(void)nargs;
-	// push(pop());
-}
+// static void
+// quote(int nargs)
+// {
+	// (void)nargs;
+	// // push(pop());
+// }
 
 
 bool
@@ -837,7 +860,7 @@ init_builtins()
     shput(env[0].e, "null?", gen_obj_fn(null_pred, 0));
     shput(env[0].e, "length", gen_obj_fn(length, 0));
     shput(env[0].e, "append", gen_obj_fn(append, 0));
-    shput(env[0].e, "quote", gen_obj_fn(quote, 0));
+    // shput(env[0].e, "quote", gen_obj_fn(quote, 0));
     return true;
 }
 

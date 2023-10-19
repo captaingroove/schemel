@@ -13,7 +13,7 @@ main(int argc, char *argv[])
 	struct obj *root = gen_obj_list();
 	struct obj *begin = gen_obj_symb("begin");
 	sexp_append_obj_inplace(root, begin);
-	parse(root, &sexp_str);
+	parse(&root, &sexp_str);
 	// print_obj(root);
 	emit(file_name, root);
 	build(file_name);

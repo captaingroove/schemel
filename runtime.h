@@ -46,7 +46,7 @@ char *read_file(char *file_name);
 void skip_space(char **ss);
 struct token next_tok(char **ss);
 void tok_str(char *s, struct token t);
-int parse(struct obj *ast, char **sexpr_str);
+int parse(struct obj **ast, char **sexpr_str);
 void emit(char *file_name, struct obj* ast);
 void build(char *file_name);
 void new_env(int eidx, int pidx);
