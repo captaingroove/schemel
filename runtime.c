@@ -14,6 +14,7 @@
 #define MAX_VALLEN  (128)
 #define MAX_STMTLEN (256)
 #define FILE_SEP    ('/')
+#define FLOAT_PREC  (128 * 8)
 
 #define panic(...) { fprintf(stderr, __VA_ARGS__); exit(EXIT_FAILURE); }
 
@@ -564,12 +565,12 @@ gen_obj_int(long int op)
 {
 	struct obj *res = malloc(sizeof(struct obj));
 	res->type = TNUM;
-	res->pval = malloc(sizeof(mpz_t));
+	res->pval = malloc(sizeof(mpf_t));
 	res->envidx = 0;
 	if (op >= 0) {
-		mpz_init_set_ui(res->pval, op);
+		mpf_init_set_ui(res->pval, op);
 	} else {
-		mpz_init_set_si(res->pval, op);
+		mpf_init_set_si(res->pval, op);
 	}
 	return res;
 }
@@ -580,11 +581,11 @@ gen_obj_int_strview(struct strview op)
 {
 	struct obj *res = malloc(sizeof(struct obj));
 	res->type = TNUM;
-	res->pval = malloc(sizeof(mpz_t));
+	res->pval = malloc(sizeof(mpf_t));
 	res->envidx = 0;
 	char opstr[MAX_VALLEN];
 	str_from_strview(opstr, op);
-	mpz_init_set_str(res->pval, opstr, 10);
+	mpf_init_set_str(res->pval, opstr, 10);
 	return res;
 }
 
@@ -598,6 +599,38 @@ gen_obj_symb(char *symb)
 	res->pval = malloc(symb_len);
 	memcpy(res->pval, symb, symb_len);
 	res->envidx = 0;
+	return res;
+}
+
+
+// struct obj *
+// gen_obj_fract(long int nom, long int den)
+// {
+	// struct obj *res = malloc(sizeof(struct obj));
+	// res->type = TNUM;
+	// res->pval = malloc(sizeof(mpq_t));
+	// res->envidx = 0;
+	// if (op >= 0) {
+		// mpq_init_set_ui(res->pval, nom, den);
+	// } else {
+		// mpq_init_set_si(res->pval, nom, den);
+	// }
+	// return res;
+// }
+
+
+struct obj *
+gen_obj_float(long int op)
+{
+	struct obj *res = malloc(sizeof(struct obj));
+	res->type = TNUM;
+	res->pval = malloc(sizeof(mpf_t));
+	res->envidx = 0;
+	if (op >= 0) {
+		mpf_init_set_ui(res->pval, op);
+	} else {
+		mpf_init_set_si(res->pval, op);
+	}
 	return res;
 }
 
@@ -632,7 +665,7 @@ add(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_int(0);
-	mpz_add(res->pval, pop()->pval, pop()->pval);
+	mpf_add(res->pval, pop()->pval, pop()->pval);
 	push(res);
 }
 
@@ -642,7 +675,7 @@ sub(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_int(0);
-	mpz_sub(res->pval, pop()->pval, pop()->pval);
+	mpf_sub(res->pval, pop()->pval, pop()->pval);
 	push(res);
 }
 
@@ -657,8 +690,22 @@ mul(int nargs)
 	if (o1 == NULL || o2 == NULL) {
 		fprintf(stderr, "arguments for '*' are NULL\n");
 	}
-	mpz_mul(res->pval, o1->pval, o2->pval);
-	// mpz_mul(res->pval, pop()->pval, pop()->pval);
+	mpf_mul(res->pval, o1->pval, o2->pval);
+	push(res);
+}
+
+
+static void
+div_float(int nargs)
+{
+	(void)nargs;
+	struct obj *res = gen_obj_float(0.0);
+	struct obj *o2 = pop();
+	struct obj *o1 = pop();
+	if (o1 == NULL || o2 == NULL) {
+		fprintf(stderr, "arguments for '/' are NULL\n");
+	}
+	mpf_div(res->pval, o1->pval, o2->pval);
 	push(res);
 }
 
@@ -668,7 +715,7 @@ gt(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_bool(false);
-	int r = mpz_cmp(pop()->pval, pop()->pval);
+	int r = mpf_cmp(pop()->pval, pop()->pval);
 	if (r > 0) *(bool *)res->pval = true;
 	push(res);
 }
@@ -679,7 +726,7 @@ lt(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_bool(false);
-	int r = mpz_cmp(pop()->pval, pop()->pval);
+	int r = mpf_cmp(pop()->pval, pop()->pval);
 	if (r < 0) *(bool *)res->pval = true;
 	push(res);
 }
@@ -690,7 +737,7 @@ ge(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_bool(false);
-	int r = mpz_cmp(pop()->pval, pop()->pval);
+	int r = mpf_cmp(pop()->pval, pop()->pval);
 	if (r >= 0) *(bool *)res->pval = true;
 	push(res);
 }
@@ -701,7 +748,7 @@ le(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_bool(false);
-	int r = mpz_cmp(pop()->pval, pop()->pval);
+	int r = mpf_cmp(pop()->pval, pop()->pval);
 	if (r <= 0) *(bool *)res->pval = true;
 	push(res);
 }
@@ -712,7 +759,7 @@ eq(int nargs)
 {
 	(void)nargs;
 	struct obj *res = gen_obj_bool(false);
-	int r = mpz_cmp(pop()->pval, pop()->pval);
+	int r = mpf_cmp(pop()->pval, pop()->pval);
 	if (r == 0) *(bool *)res->pval = true;
 	push(res);
 }
@@ -830,6 +877,7 @@ init_builtins()
     shput(env[0].e, "+", gen_obj_fn(add, 0));
     shput(env[0].e, "-", gen_obj_fn(sub, 0));
     shput(env[0].e, "*", gen_obj_fn(mul, 0));
+    shput(env[0].e, "/", gen_obj_fn(div_float, 0));
     shput(env[0].e, ">", gen_obj_fn(gt, 0));
     shput(env[0].e, ">=", gen_obj_fn(ge, 0));
     shput(env[0].e, "<", gen_obj_fn(lt, 0));
@@ -866,6 +914,7 @@ init_runtime()
 	}
 	arrput(parent_env, 0);
 	init_builtins();
+	mpf_set_default_prec(FLOAT_PREC);
 	return true;
 }
 
@@ -983,12 +1032,26 @@ obj_tostr(char *str, struct obj *obj)
 	struct obj **darr = obj->pval;
 	struct obj *olist = obj->pval;
 	int l = 0;
+	long int num = 0;
+	// mp_exp_t exp = 0;
+	// size_t mantlen;
 	switch(obj->type) {
 	case TBOOL:
 		ret = sprintf(str, "%s", *(bool *)obj->pval ? "#t" : "#f");
 		break;
 	case TNUM:
-		mpz_get_str(str, 10, obj->pval);
+		/// FIXME convert multi precision floats to string
+		// mpz_get_str(str, 10, obj->pval);
+
+		num = mpf_get_si(obj->pval);
+		sprintf(str, "%ld", num);
+
+		// mpf_get_str(str, &exp, 10, MAX_VALLEN - 2, obj->pval);
+		// mantlen = strlen(str);
+		// mp_exp_t i;
+		// for (i = 0; i < exp; i++) str[mantlen + i] = '0';
+		// str[i] = '\0';
+
 		ret = strlen(str);
 		break;
 	case TSYMB:
