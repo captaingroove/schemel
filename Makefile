@@ -1,5 +1,5 @@
 ## Explicitely define CFLAGS to avoid function pointer to void* conversion warnings
-CFLAGS = -std=c99 -D_XOPEN_SOURCE=700 -g -D__DEBUG__ -Wall -Wextra -Wno-unused-value
+CFLAGS += -Wno-pedantic -Wno-unused-value
 OBJS = runtime.o
 HEADERS = runtime.h
 .PHONY: clean test
