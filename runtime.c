@@ -123,9 +123,9 @@ next_tok(char **ss)
 		(*ss)++;
 	} else if (isdigit(c)
 		|| (*(*ss + 1) && isdigit(*(*ss + 1)) && (c == '+' || c == '-'))) {
-		if (c == '+' || c == '-') (*ss)++;
 		t.type = TOKNUM;
 		t.s = (struct strview){ .beg = *ss };
+		if (c == '+' || c == '-') (*ss)++;
 		while (isdigit(**ss)) (*ss)++;
 		t.s.end = *ss - 1;
 	} else {
@@ -395,6 +395,7 @@ static void
 emit_quote(char ***out, struct obj *obj)
 {
 	char **outarr = *out;
+	/// FIXME don't open a scope or allocate a lh value for obj
 	// arrput(outarr, "	{\n");
 	arrput(outarr, "		struct obj *o = NULL;\n");
 	char *so = malloc(MAX_STMTLEN);
